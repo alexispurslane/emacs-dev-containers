@@ -29,4 +29,4 @@
 ;;; Code:
 
 (require 'cl-lib)
-(require ')
+(require 'hydra)
