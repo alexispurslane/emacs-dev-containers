@@ -1,4 +1,4 @@
-;;; dev-containers.el --- Control the devcontainer cli with a hydra dashboard *- lexical-binding: t -*-
+;;; dev-containers.el --- Control the devcontainer cli from your editor *- lexical-binding: t -*-
 
 ;; Author: Alexis Purslane <alexispurlsane@pm.me>
 ;; URL: https://github.com/alexispurslane/emacs-dev-containers
@@ -52,12 +52,14 @@ executable."
     :type 'string)
 
 (defmacro dev-containers--defsubcommand (subcommand &optional arg-spec &rest args)
+    "Generate a command definition for the given devcontainer
+SUBCOMMAND with the given ARG-SPEC and ARGS."
     `(defun ,(intern (concat "dev-containers-" (string-replace " " "-" subcommand))) (,@args)
-         ,(concat "Run the 'devcontainer "
+         ,(concat "Run the \=devcontainer "
                   subcommand
                   " "
                   (string-join (mapcar (lambda (arg) (upcase (symbol-name arg))) args) " ")
-                  "' command.")
+                  "\= command.")
          (interactive ,arg-spec)
          (message ,(concat "Running " subcommand "..."))
          (set-process-sentinel
@@ -101,7 +103,7 @@ executable."
 (dev-containers--defsubcommand "features generate-docs")
 ;; My abstraction wasn't quite powerful enough for this one, and tbh... I don't care.
 (defun dev-containers-templates-apply (template-id)
-    "Run the devcontainer templates apply command."
+    "Run the \=devcontainer templates apply --template-id TEMPLATE-ID\= command."
     (interactive (list (read-string "OCI template reference: ")))
     (message "Running templates apply...")
     (set-process-sentinel
