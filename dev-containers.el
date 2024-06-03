@@ -30,3 +30,139 @@
 
 (require 'cl-lib)
 (require 'hydra)
+
+(defgroup dev-containers nil
+    "Customization group for the Emacs dev-containers package.")
+
+(defcustom dev-containers--container-executable
+    (executable-find "podman")
+    "The location that dev-containers.el finds your fundamental container management executable (e.g., docker or podman)."
+    :group 'dev-containers
+    :type 'string)
+
+(defcustom dev-containers--devcontainer-executable
+    (executable-find "devcontainer")
+    "The location that dev-containers.el finds your `devcontainer' executable."
+    :group 'dev-containers
+    :type 'string)
+
+(defmacro dev-containers--defsubcommand (subcommand &optional arg-spec &rest args)
+    `(defun ,(intern (concat "dev-containers-" (string-replace " " "-" subcommand))) (,@args)
+         ,(concat "Runs the devcontainer " subcommand " command.")
+         (interactive ,arg-spec)
+         (message ,(concat "Running " subcommand "..."))
+         (set-process-sentinel
+          (start-process "devcontainer" "*devcontainer*"
+                         dev-containers--devcontainer-executable
+                         ,subcommand "--workspace-folder" (project-root (project-current)) ,@args)
+          (lambda (process msg)
+              (pcase (list (process-status process) (process-exit-status process))
+                  ('(exit 0) (message "Devcontainer command succeeded."))
+                  (_ (message (concat "Devcontainer command failed with message: " msg " (check *devcontainer* for more info)"))))))))
+
+(dev-containers--defsubcommand "up") 
+(dev-containers--defsubcommand "set-up")
+(dev-containers--defsubcommand "run-user-commands")
+(dev-containers--defsubcommand "read-configuration")
+(dev-containers--defsubcommand "outdated")
+(dev-containers--defsubcommand "upgrade")
+(dev-containers--defsubcommand "build")
+(dev-containers--defsubcommand "exec"
+                               (list
+                                (read-shell-command "Shell command to run in devcontainer: "
+                                                    nil
+                                                    t))
+                               shellcmd)
+
+(dev-containers--defsubcommand "features test"
+                               (list (read-string "Feature to test: "))
+                               feature)
+(dev-containers--defsubcommand "features package"
+                               (list (read-string "Feature to package: "))
+                               feature)
+(dev-containers--defsubcommand "features publish"
+                               (list (read-string "Feature to package and publish: "))
+                               feature)
+(dev-containers--defsubcommand "features info"
+                               (list
+                                (read-string "Mode: ")
+                                (read-string "Feature to package and publish: "))
+                               mode feature)
+(dev-containers--defsubcommand "features resolve-dependencies")
+(dev-containers--defsubcommand "features generate-docs")
+;; My abstraction wasn't quite powerful enough for this one, and tbh... I don't care.
+(defun dev-containers-templates-apply (template-id)
+    "Runs the devcontainer templates apply command."
+    (interactive (list (read-string "OCI template reference: ")))
+    (message "Running templates apply...")
+    (set-process-sentinel
+     (start-process "devcontainer" "*devcontainer*"
+                    dev-containers--devcontainer-executable
+                    "templates apply"
+                    "--workspace-folder" (project-root (project-current))
+                    "--template-id" template-id)
+     (lambda (process msg)
+         (pcase (list (process-status process) (process-exit-status process))
+             ('(exit 0) (message "Devcontainer command succeeded."))
+             (_ (message (concat "Devcontainer command failed with message: " msg " (check *devcontainer* for more info)")))))))
+(dev-containers--defsubcommand "templates publish"
+                               (list (read-file-name "Devcontainer.json or directory of json files: "))
+                               publish-it)
+(dev-containers--defsubcommand "templates generate-docs")
+
+(defmacro dev-containers--open-hydra (hydra)
+    "Call a hydra."
+    `(progn
+         (call-interactively ',hydra)))
+
+(defhydra dev-containers-features-hydra (:color blue :columns 2)
+    "Run a `devcontainer features' CLI command"
+    ("t" dev-containers-features-test "Test Features")
+    ("p" dev-containers-features-package "Package Features")
+    ("P" dev-containers-features-publish "Package and publish Features")
+    ("i" dev-containers-features-info "Fetch metadata for a published Feature")
+    ("d" dev-containers-features-resolve-dependencies "Read and resolve dependency graph from a configuration")
+    ("h" dev-containers-features-generate-docs "Generate documentation"))
+
+(defhydra dev-contianers-templates-hydra (:color blue :columns 2)
+    "Run a `devcontainer templates' CLI command"
+    ("a" dev-containers-templates-apply "Apply a template to the project")
+    ("p" dev-containers-templates-publish "Package and publish templates")
+    ("h" dev-containers-templates-generate-docs "Generate documentation"))
+
+(defhydra dev-containers-hydra (:color blue :columns 2)
+    "Run a command with the `devcontainer' CLI tool"
+    ("u" dev-containers-up "Create and run dev container")
+    ("s" dev-containers-set-up "Set up an existing container as a dev container")
+    ("b" dev-containers-build "Build a dev container image")
+    ("r" dev-containers-run-user-commands "Run user commands")
+    ("c" dev-containers-read-configuration "Read configuration")
+    ("o" dev-containers-outdated "Show current and available versions")
+    ("U" dev-containers-upgrade "Upgrade lockfile")
+    ("f" (dev-containers--open-hydra dev-containers-features-hydra/body) "Features commands")
+    ("t" (dev-containers--open-hydra dev-templates-templates-hydra/body) "Tempaltes commands")
+    ("e" dev-containers-exec "Execute a command on a running dev container")
+    ("q" nil "cancel" :color magenta))
+
+(defun dev-containers--tramp-completion (&optional ignored)
+    (mapcar (lambda (x) (list nil x))
+            (process-lines dev-containers--container-executable "ps" "--noheading" "--format" "{{.Names}}")))
+
+(define-minor-mode dev-containers-minor-mode
+    "A minor mode for controlling the `devcontainer' CLI tool."
+    :initial-value nil
+    :lighter " Devcontainer"
+    :keymap `((,(kbd "C-c d") . dev-containers-hydra/body))
+    (require 'tramp)
+    (add-to-list 'tramp-remote-path 'tramp-own-remote-path)
+    (add-to-list 'tramp-methods
+                 `("devcontainer" . ((tramp-login-program "devcontainer")
+                                     (tramp-login-args
+                                      (("exec")
+                                       ("--workspace-folder" ".")
+                                       ("--container-id" "%h")
+                                       ("%l")))
+                                     (tramp-remote-shell "/bin/sh")
+                                     (tramp-remote-shell-login "-l")
+                                     (tramp-remote-shell-args ("-i" "-c")))))
+    (tramp-set-completion-function "devcontainer" '((dev-containers--tramp-completion ""))))
