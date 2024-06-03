@@ -1,4 +1,4 @@
-;;; dev-containers.el --- implements VSCode devcontainer support for Emacs -*- lexical-binding: t -*-
+;;; dev-containers.el --- Control the devcontainer cli with a hydra dashboard *- lexical-binding: t -*-
 
 ;; Author: Alexis Purslane <alexispurlsane@pm.me>
 ;; URL: https://github.com/alexispurslane/emacs-dev-containers
@@ -40,22 +40,26 @@
 (defcustom dev-containers--container-executable
     (executable-find "podman")
     "The location that dev-containers.el finds your fundamental
- container management executable (e.g., docker or podman)."
+container management executable (e.g., docker or podman)."
     :group 'dev-containers
     :type 'string)
 
 (defcustom dev-containers--devcontainer-executable
     (executable-find "devcontainer")
     "The location that dev-containers.el finds your `devcontainer'
- executable."
+executable."
     :group 'dev-containers
     :type 'string)
 
 (defmacro dev-containers--defsubcommand (subcommand &optional arg-spec &rest args)
     `(defun ,(intern (concat "dev-containers-" (string-replace " " "-" subcommand))) (,@args)
-         ,(s-word-wrap 65 (concat "Run the devcontainer " subcommand " command."))
+         ,(concat "Run the 'devcontainer "
+                  subcommand
+                  " "
+                  (string-join (mapcar (lambda (arg) (upcase (symbol-name arg))) args) " ")
+                  "' command.")
          (interactive ,arg-spec)
-         (message ,(concat "Running " bcommand "..."))
+         (message ,(concat "Running " subcommand "..."))
          (set-process-sentinel
           (start-process "devcontainer" "*devcontainer*"
                          dev-containers--devcontainer-executable
@@ -65,7 +69,7 @@
                   ('(exit 0) (message "Devcontainer command succeeded."))
                   (_ (message (concat "Devcontainer command failed with message: " msg " (check *devcontainer* for more info)"))))))))
 
-(dev-containers--defsubcommand "up") 
+(dev-containers--defsubcommand "up")
 (dev-containers--defsubcommand "set-up")
 (dev-containers--defsubcommand "run-user-commands")
 (dev-containers--defsubcommand "read-configuration")
