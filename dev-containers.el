@@ -135,7 +135,7 @@ SUBCOMMAND with the given ARG-SPEC and ARGS."
     ("d" dev-containers-features-resolve-dependencies "Read and resolve dependency graph from a configuration")
     ("h" dev-containers-features-generate-docs "Generate documentation"))
 
-(defhydra dev-contianers-templates-hydra (:color blue :columns 2)
+(defhydra dev-containers-templates-hydra (:color blue :columns 2)
     "Run a `devcontainer templates' CLI command"
     ("a" dev-containers-templates-apply "Apply a template to the project")
     ("p" dev-containers-templates-publish "Package and publish templates")
@@ -151,7 +151,7 @@ SUBCOMMAND with the given ARG-SPEC and ARGS."
     ("o" dev-containers-outdated "Show current and available versions")
     ("U" dev-containers-upgrade "Upgrade lockfile")
     ("f" (dev-containers--open-hydra dev-containers-features-hydra/body) "Features commands")
-    ("t" (dev-containers--open-hydra dev-templates-templates-hydra/body) "Tempaltes commands")
+    ("t" (dev-containers--open-hydra dev-containers-templates-hydra/body) "Tempaltes commands")
     ("e" dev-containers-exec "Execute a command on a running dev container")
     ("q" nil "cancel" :color magenta))
 
