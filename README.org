@@ -1,0 +1,7 @@
+* emacs-dev-containers
+
+** Warning: 🚧 Under Construction🚧 
+This is extremely early alpha software, and I haven't had a chance to test it sufficiently, let alone in anger, because I don't regularly use devcontainers. USE AT YOUR OWN RISK.
+
+** Introduction
+Various commands and associated hydras for the [[https://github.com/devcontainers/cli][`devcontainer` cli command]], to give Emacs a fighting chance against VSCode in a containerized world.

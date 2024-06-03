@@ -2,7 +2,7 @@
 
 ;; Author: Alexis Purslane <alexispurlsane@pm.me>
 ;; URL: https://github.com/alexispurslane/emacs-dev-containers
-;; Package-Requires: ((emacs "29.1") (cl-lib "1.0") (hydra "0.15.0"))
+;; Package-Requires: ((emacs "29") (cl-lib "1.0") (hydra "0.15.0"))
 ;; Version: 0.1.0
 ;; Keywords: dev-containers, containers, vscode, devcontainers
 
