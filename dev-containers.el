@@ -2,14 +2,18 @@
 
 ;; Author: Alexis Purslane <alexispurlsane@pm.me>
 ;; URL: https://github.com/alexispurslane/emacs-dev-containers
-;; Package-Requires: ((emacs "29") (cl-lib "1.0") (hydra "0.15.0"))
-;; Version: 0.1.0
+;; Package-Requires: ((emacs "29")
+;;                    (cl-lib "1.0")
+;;                    (hydra "0.15.0")
+;;                    (tramp "2.6")
+;;                    (project "0.9"))
+;; Version: 0.2.0
 ;; Keywords: dev-containers, containers, vscode, devcontainers
 
 ;; This file is not part of GNU Emacs.
 
 ;; Copyright (c) by Alexis Purslane 2024.
-;; 
+
 ;; This program is free software: you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
 ;; the Free Software Foundation, either version 3 of the License, or
@@ -30,27 +34,32 @@
 
 (require 'cl-lib)
 (require 'hydra)
+(require 'tramp)
+(require 'project)
 
 (defgroup dev-containers nil
-    "Customization group for the Emacs dev-containers package.")
+    "Customization group for the Emacs dev-containers package."
+    :group 'external)
 
 (defcustom dev-containers--container-executable
     (executable-find "podman")
-    "The location that dev-containers.el finds your fundamental container management executable (e.g., docker or podman)."
+    "The location that dev-containers.el finds your fundamental
+ container management executable (e.g., docker or podman)."
     :group 'dev-containers
     :type 'string)
 
 (defcustom dev-containers--devcontainer-executable
     (executable-find "devcontainer")
-    "The location that dev-containers.el finds your `devcontainer' executable."
+    "The location that dev-containers.el finds your `devcontainer'
+ executable."
     :group 'dev-containers
     :type 'string)
 
 (defmacro dev-containers--defsubcommand (subcommand &optional arg-spec &rest args)
     `(defun ,(intern (concat "dev-containers-" (string-replace " " "-" subcommand))) (,@args)
-         ,(concat "Runs the devcontainer " subcommand " command.")
+         ,(s-word-wrap 65 (concat "Run the devcontainer " subcommand " command."))
          (interactive ,arg-spec)
-         (message ,(concat "Running " subcommand "..."))
+         (message ,(concat "Running " bcommand "..."))
          (set-process-sentinel
           (start-process "devcontainer" "*devcontainer*"
                          dev-containers--devcontainer-executable
@@ -92,7 +101,7 @@
 (dev-containers--defsubcommand "features generate-docs")
 ;; My abstraction wasn't quite powerful enough for this one, and tbh... I don't care.
 (defun dev-containers-templates-apply (template-id)
-    "Runs the devcontainer templates apply command."
+    "Run the devcontainer templates apply command."
     (interactive (list (read-string "OCI template reference: ")))
     (message "Running templates apply...")
     (set-process-sentinel
@@ -145,6 +154,8 @@
     ("q" nil "cancel" :color magenta))
 
 (defun dev-containers--tramp-completion (&optional ignored)
+    "Gets the list of available (running) containers for use as
+completion options with the /devcontainer: tramp method."
     (mapcar (lambda (x) (list nil x))
             (process-lines dev-containers--container-executable "ps" "--noheading" "--format" "{{.Names}}")))
 
@@ -152,8 +163,7 @@
     "A minor mode for controlling the `devcontainer' CLI tool."
     :initial-value nil
     :lighter " Devcontainer"
-    :keymap `((,(kbd "C-c d") . dev-containers-hydra/body))
-    (require 'tramp)
+    :keymap `((,(kbd "C-c $") . dev-containers-hydra/body))
     (add-to-list 'tramp-remote-path 'tramp-own-remote-path)
     (add-to-list 'tramp-methods
                  `("devcontainer" . ((tramp-login-program "devcontainer")
@@ -166,3 +176,6 @@
                                      (tramp-remote-shell-login "-l")
                                      (tramp-remote-shell-args ("-i" "-c")))))
     (tramp-set-completion-function "devcontainer" '((dev-containers--tramp-completion ""))))
+
+(provide 'dev-containers)
+;;; dev-containers.el ends here
